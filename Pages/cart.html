@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Your cart</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+</head>
+
+<body>
+
+
+
+
+
+
+
+  <!-- to display cart product start -->
+
+
+
+  <div id="cart-items"></div>
+  <h4>Total: ₹<span id="total-price">0</span></h4>
+
+  <a href="payment.html" id="proceedLink">
+    <button onclick="handleProceed(event)" style="padding: 10px 20px; margin-top: 10px;">Proceed
+      to Payment</button>
+  </a>
+
+
+
+
+
+
+  <script>
+
+   
+   // Load cart on page load
+    window.onload = loadCart;
+
+    function loadCart() {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const cartItemsDiv = document.getElementById('cart-items');
+      let total = 0;
+      cartItemsDiv.innerHTML = '';
+
+      cart.forEach((item, index) => {
+        const itemTotal = item.price * item.quantity;
+        total += itemTotal;
+
+        cartItemsDiv.innerHTML += `
+            <div class="cart-item" style="border: 1px solid #ccc; padding: 10px; margin-bottom: 10px;">
+                <img src="${item.image}" width="60" height="60" style="vertical-align: middle;">
+                <strong>${item.name}</strong> - ₹${item.price}
+                <br>
+                Quantity: 
+                <button onclick="changeQuantity(${index}, -1)">−</button>
+                <span>${item.quantity}</span>
+                <button onclick="changeQuantity(${index}, 1)">+</button>
+                <br>
+                <strong>Subtotal: ₹${itemTotal}</strong>
+                <br>
+                <button onclick="removeItem(${index})" style="color: red;">Remove</button>
+            </div>
+        `;
+      });
+
+      document.getElementById('total-price').innerText = total;
+    }
+
+    // Change Quantity
+    function changeQuantity(index, change) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      cart[index].quantity += change;
+
+      if (cart[index].quantity < 1) {
+        cart[index].quantity = 1; // Prevent quantity < 1
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+      loadCart();
+    }
+
+    // Remove Item
+    function removeItem(index) {
+      let cart = JSON.parse(localStorage.getItem('cart')) || [];
+      cart.splice(index, 1); // Remove product
+      localStorage.setItem('cart', JSON.stringify(cart));
+      loadCart();
+    }
+
+
+
+
+
+
+    // proceed to payment button start
+
+    function handleProceed(event) {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      if (cart.length === 0) {
+        event.preventDefault(); // Stop redirection
+        alert("Add a product to cart to proceed payment");
+        return;
+      }
+
+      // Calculate total
+      let total = 0;
+      cart.forEach(item => {
+        total += item.price * item.quantity;
+      });
+
+      // Store total and cart details in localStorage for payment page
+      localStorage.setItem('cartTotal', total);
+      localStorage.setItem('cartForPayment', JSON.stringify(cart));
+    }
+
+
+
+
+  </script>
+
+
+
+
+
+  <!-- to display cart product end -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</body>
+
+</html>

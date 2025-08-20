@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <title>Delivery & Payment</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <!-- Bootstrap for basic styling -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+
+<body class="container py-4">
+
+  <!-- Delivery Section -->
+  <h2>Delivery</h2>
+  <div class="row">
+    <div class="col-md-6">
+      <form id="deliveryForm">
+        <div class="mb-2"><input type="text" class="form-control" id="firstname" placeholder="First Name" required>
+        </div>
+        <div class="mb-2"><input type="text" class="form-control" id="lastname" placeholder="Last Name" required></div>
+        <div class="mb-2"><textarea class="form-control" id="address" placeholder="Address" required></textarea></div>
+        <div class="mb-2"><input type="text" class="form-control" id="landmark" placeholder="Landmark" required></div>
+        <div class="mb-2"><input type="text" class="form-control" id="city" placeholder="City" required></div>
+        <div class="mb-2"><input type="text" class="form-control" id="state" placeholder="State" required></div>
+        <div class="mb-2"><input type="text" class="form-control" id="pincode" placeholder="Pincode" required></div>
+        <div class="mb-2"><input type="text" class="form-control" id="phone" placeholder="Phone Number" required></div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Order Summary -->
+  <h2 class="mt-4">Order Summary</h2>
+  <div id="order-summary" class="mb-3"></div>
+  <h4>Total: ₹<span id="finalTotal">0</span></h4>
+
+  <!-- Buy Button -->
+  <button class="btn btn-success mt-3" onclick="submitOrder()">Buy</button>
+
+  <script>
+    // Load order summary
+    const cart = JSON.parse(localStorage.getItem('cartForPayment')) || [];
+    const total = localStorage.getItem('cartTotal') || 0;
+    document.getElementById('finalTotal').innerText = total;
+
+    const summaryDiv = document.getElementById('order-summary');
+    cart.forEach(item => {
+      summaryDiv.innerHTML += `
+        <div class="border p-2 mb-2">
+          <img src="${item.image}" width="60" height="60"> 
+          <strong>${item.name}</strong> - ₹${item.price} x ${item.quantity}
+        </div>
+      `;
+    });
+
+    function submitOrder() {
+      const fields = ["firstname", "lastname", "address", "landmark", "city", "state", "pincode", "phone"];
+      const customer = {};
+      for (let id of fields) {
+        const value = document.getElementById(id).value.trim();
+        if (!value) {
+          alert("Please fill all the fields.");
+          return;
+        }
+        customer[id] = value;
+      }
+
+      // Save delivery info (for DB)
+      localStorage.setItem("customerInfo", JSON.stringify(customer));
+
+      // Trigger Razorpay
+      var options = {
+        "key": "rzp_test_ViVmxbb2E4qPE3", // Replace with your Razorpay key
+        "amount": total * 100,
+        "currency": "INR",
+        "name": "Meeyazh Naturals",
+        "description": "Order Payment",
+        "handler": function (response) {
+          alert("Payment successful! Payment ID: " + response.razorpay_payment_id);
+          saveOrder(response.razorpay_payment_id);
+
+        },
+        "prefill": {
+          "name": document.getElementById("firstname").value,
+          "email": "", // optional
+          "contact": document.getElementById("phone").value
+        },
+        "theme": {
+          "color": "#3399cc"
+        }
+      };
+      var rzp = new Razorpay(options);
+      rzp.open();
+    }
+
+    function sendToBackend(customer, cart, total, paymentId) {
+      fetch("http://localhost/your-api/save-order.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          customer,
+          cart,
+          total,
+          paymentId
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log(data);
+          alert("Order placed successfully!");
+          localStorage.clear();
+          window.location.href = "thankyou.html"; // Optional thank you page
+        });
+    }
+
+
+
+
+
+
+
+
+
+    function saveOrder(paymentId) {
+      const customer = {
+        firstname: document.getElementById("firstname").value,
+        lastname: document.getElementById("lastname").value,
+        address: document.getElementById("address").value,
+        landmark: document.getElementById("landmark").value,
+        city: document.getElementById("city").value,
+        state: document.getElementById("state").value,
+        pincode: document.getElementById("pincode").value,
+        phone: document.getElementById("phone").value
+      };
+
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const total = parseFloat(localStorage.getItem("totalAmount")) || 0;
+
+      fetch("http://localhost/meeyazh/save-order.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          customer,
+          cart,
+          total,
+          paymentId
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Server response:", data);
+          alert("Order placed successfully!");
+          localStorage.clear();
+          window.location.href = "thankyou.html";
+          // Optional: redirect or clear cart
+        })
+        .catch(err => {
+          console.error("Order save failed:", err);
+        });
+    }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // php code
+
+
+
+
+    // This runs after Razorpay payment is successful
+    function saveOrder(paymentId) {
+      // Grab user data from form
+      const customer = {
+        firstname: document.getElementById("firstname").value,
+        lastname: document.getElementById("lastname").value,
+        address: document.getElementById("address").value,
+        landmark: document.getElementById("landmark").value,
+        city: document.getElementById("city").value,
+        state: document.getElementById("state").value,
+        pincode: document.getElementById("pincode").value,
+        phone: document.getElementById("phone").value,
+      };
+
+      // Grab cart and total from localStorage (or however you're storing it)
+      const cart = JSON.parse(localStorage.getItem("cart")) || [];
+      const total = parseFloat(localStorage.getItem("totalAmount")) || 0;
+
+      // Send it to PHP
+      fetch("http://localhost/meeyazh/save-order.php", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          customer,
+          cart,
+          total,
+          paymentId
+        })
+      })
+        .then(res => res.json())
+        .then(data => {
+          console.log("Server response:", data);
+          alert("Order placed successfully!");
+        })
+        .catch(err => {
+          console.error("Error saving order:", err);
+        });
+    }
+
+
+
+
+
+
+  </script>
+
+</body>
+
+</html>
